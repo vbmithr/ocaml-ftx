@@ -1,0 +1,47 @@
+open Sexplib.Std
+
+let strfloat =
+  let open Json_encoding in
+  union [
+    case float (fun s -> Some s) (fun s -> s) ;
+    case string (fun s -> Some (string_of_float s)) float_of_string ;
+  ]
+
+(* let side_encoding =
+ *   let open Json_encoding in
+ *   string_enum [
+ *     "buy", `buy ;
+ *     "sell", `sell ;
+ *   ] *)
+
+module Ezjsonm_encoding = struct
+  include Json_encoding.Make(Json_repr.Ezjsonm)
+
+  let destruct_safe encoding value =
+    try destruct encoding value with exn ->
+      Format.eprintf "%a@."
+        (Json_encoding.print_error ?print_unknown:None) exn ;
+      raise exn
+end
+
+module Ptime = struct
+  include Ptime
+
+  let t_of_sexp sexp =
+    let sexp_str = string_of_sexp sexp in
+    match of_rfc3339 sexp_str with
+    | Ok (t, _, _) -> t
+    | _ -> invalid_arg "Ptime.t_of_sexp"
+
+  let sexp_of_t t =
+    sexp_of_string (to_rfc3339 t)
+
+  let encoding =
+    let open Json_encoding in
+    conv
+      Ptime.to_float_s
+      (fun ts -> match Ptime.of_float_s ts with
+         | None -> invalid_arg "Ptime.encoding"
+         | Some ts -> ts)
+      float
+end

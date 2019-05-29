@@ -1,0 +1,35 @@
+(library
+ (name        ftx)
+ (public_name ftx)
+ (modules ftx)
+ (preprocess (pps ppx_sexp_conv))
+ (libraries hex ptime uri ezjsonm ocplib-json-typed))
+
+; (library
+;  (name        ftx_rest)
+;  (public_name ftx-rest)
+;  (modules ftx_rest)
+;  (preprocess (pps ppx_sexp_conv))
+;  (libraries
+;   core
+;   base64
+;   digestif.c
+;   ftx
+;   ptime
+;   uri
+;   ocplib-json-typed
+;   fastrest))
+
+(library
+ (name        ftx_ws)
+ (public_name ftx-ws)
+ (modules ftx_ws)
+ (preprocess (pps ppx_sexp_conv))
+ (libraries ftx ptime uri ocplib-json-typed))
+
+(library
+ (name        ftx_ws_async)
+ (public_name ftx-ws-async)
+ (modules ftx_ws_async)
+ (preprocess (pps ppx_sexp_conv))
+ (libraries ezjsonm ftx_ws core async fastws-async))
