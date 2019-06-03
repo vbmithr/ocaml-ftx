@@ -139,12 +139,23 @@ let data_encoding encoding =
        (req "data" encoding))
 
 type t =
+  | Error of { code: int ; msg: string }
   | Info of msg
   | Subscribed of channel * string
   | Unsubscribed of channel * string
   | Ticker of string * ticker
   | Book of book data
 [@@deriving sexp]
+
+let error_encoding =
+  let open Json_encoding in
+  conv
+    (fun (code, err) -> (), code, err)
+    (fun ((), code, err) -> (code, err))
+    (obj3
+       (req "type" (constant "error"))
+       (req "code" int)
+       (req "msg" string))
 
 let info_encoding =
   let open Json_encoding in
@@ -167,6 +178,9 @@ let ticker_encoding =
 let encoding =
   let open Json_encoding in
   union [
+    case error_encoding
+      (function Error { code; msg } -> Some (code, msg) | _ -> None)
+      (fun (code, msg) -> Error { code ; msg }) ;
     case info_encoding (function Info msg -> Some msg | _ -> None) (fun msg -> Info msg) ;
     case (subscription_encoding
             (obj1 (req "type" (string_enum ["subscribed", `Subscribe ;

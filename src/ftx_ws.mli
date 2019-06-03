@@ -50,6 +50,7 @@ type book = {
 } [@@deriving sexp]
 
 type t =
+  | Error of { code: int ; msg: string }
   | Info of msg
   | Subscribed of channel * string
   | Unsubscribed of channel * string
