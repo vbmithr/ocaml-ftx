@@ -49,6 +49,15 @@ type book = {
   action: [ `Partial | `Update ] ;
 } [@@deriving sexp]
 
+type trade = {
+  id: int option ;
+  ts: Ptime.t ;
+  price: float ;
+  size: float ;
+  side: [`Buy | `Sell] ;
+  liquidation: bool ;
+} [@@deriving sexp]
+
 type t =
   | Error of { code: int ; msg: string }
   | Info of msg
@@ -56,6 +65,7 @@ type t =
   | Unsubscribed of channel * string
   | Ticker of string * ticker
   | Book of book data
+  | Trade of trade list data
 [@@deriving sexp]
 
 val encoding : t Json_encoding.encoding

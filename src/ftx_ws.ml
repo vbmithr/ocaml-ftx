@@ -120,6 +120,37 @@ let book_encoding =
        (req "asks" (list quote_encoding))
        (req "action" typ_encoding))
 
+type trade = {
+  id: int option ;
+  ts: Ptime.t ;
+  price: float ;
+  size: float ;
+  side: [`Buy | `Sell] ;
+  liquidation: bool ;
+} [@@deriving sexp]
+
+let side_encoding =
+  let open Json_encoding in
+  string_enum [
+    "buy", `Buy ;
+    "sell", `Sell ;
+  ]
+
+let trade_encoding =
+  let open Json_encoding in
+  conv
+    (fun { id ; ts ; price ; size ; side ; liquidation } ->
+       (id, ts, price, size, side, liquidation))
+    (fun (id, ts, price, size, side, liquidation) ->
+       { id ; ts ; price ; size ; side ; liquidation })
+    (obj6
+       (req "id" (option int))
+       (req "time" Ptime.encoding)
+       (req "price" float)
+       (req "size" float)
+       (req "side" side_encoding)
+       (req "liquidation" bool))
+
 type 'a data = {
   typ: [ `Partial | `Update ] ;
   channel: channel ;
@@ -145,6 +176,7 @@ type t =
   | Unsubscribed of channel * string
   | Ticker of string * ticker
   | Book of book data
+  | Trade of trade list data
 [@@deriving sexp]
 
 let error_encoding =
@@ -202,6 +234,10 @@ let encoding =
     case (data_encoding book_encoding)
       (function Book b -> Some b | _ -> None)
       (fun b -> Book b) ;
+
+    case (data_encoding (list trade_encoding))
+      (function Trade t -> Some t | _ -> None)
+      (fun t -> Trade t) ;
   ]
 
 let pp ppf t =
