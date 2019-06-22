@@ -28,5 +28,7 @@
  (preprocess (pps ppx_jane ppx_sexp_conv))
  (libraries
    logs-async-reporter
+   fastrest
+   ftx-rest
    ftx-ws
    ftx-ws-async))
