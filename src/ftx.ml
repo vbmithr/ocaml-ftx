@@ -34,7 +34,7 @@ module Ptime = struct
     | _ -> invalid_arg "Ptime.t_of_sexp"
 
   let sexp_of_t t =
-    sexp_of_string (to_rfc3339 t)
+    sexp_of_string (to_rfc3339 ~frac_s:7 t)
 
   let encoding =
     let open Json_encoding in
