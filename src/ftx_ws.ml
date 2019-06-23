@@ -64,9 +64,9 @@ let msg_encoding =
           (req "msg" string)))
 
 type ticker = {
-  bid : float ;
-  ask : float ;
-  last : float ;
+  bid : float option ;
+  ask : float option ;
+  last : float option ;
   ts : Ptime.t ;
 } [@@deriving sexp]
 
@@ -76,9 +76,9 @@ let ticker_encoding =
     (fun { bid ; ask ; last ; ts } -> (bid, ask, last, ts))
     (fun (bid, ask, last, ts) -> { bid ; ask ; last ; ts })
     (obj4
-       (req "bid" float)
-       (req "ask" float)
-       (req "last" float)
+       (req "bid" (option float))
+       (req "ask" (option float))
+       (req "last" (option float))
        (req "time" Ptime.encoding))
 
 type quote = {

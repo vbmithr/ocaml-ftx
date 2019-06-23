@@ -23,9 +23,9 @@ type msg = {
 }
 
 type ticker = {
-  bid : float ;
-  ask : float ;
-  last : float ;
+  bid : float option ;
+  ask : float option ;
+  last : float option ;
   ts : Ptime.t ;
 }
 
