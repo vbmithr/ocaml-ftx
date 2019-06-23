@@ -10,17 +10,36 @@ module Log_async = (val Logs_async.src_log src : Logs_async.LOG)
 
 let markets = ref []
 
+let subs_r, subs_w = Pipe.create ()
+
 let process_user_cmd w =
   let process s =
     match String.split s ~on:' ' with
     | "all" :: _ ->
       Deferred.List.iter !markets ~f:begin fun sym ->
         Pipe.write w (subscribe Trades sym) >>= fun () ->
-        Pipe.write w (subscribe Orderbook sym)
+        begin Pipe.read subs_r >>= function
+        | `Eof -> assert false
+        | `Ok _ -> Deferred.unit
+        end >>= fun () ->
+        Pipe.write w (subscribe Orderbook sym) >>= fun () ->
+        Pipe.read subs_r >>= function
+        | `Eof -> assert false
+        | `Ok _ -> Deferred.unit
       end
     | "tickers" :: _ ->
       Deferred.List.iter !markets ~f:begin fun sym ->
-        Pipe.write w (subscribe Ticker sym)
+        Pipe.write w (subscribe Ticker sym) >>= fun () ->
+        Pipe.read subs_r >>= function
+        | `Eof -> assert false
+        | `Ok _ -> Deferred.unit
+      end
+    | "alltrades" :: _ ->
+      Deferred.List.iter !markets ~f:begin fun sym ->
+        Pipe.write w (subscribe Trades sym) >>= fun () ->
+        Pipe.read subs_r >>= function
+        | `Eof -> assert false
+        | `Ok _ -> Deferred.unit
       end
     | "ticker" :: syms ->
       Deferred.List.iter syms ~f:begin fun sym ->
@@ -75,20 +94,20 @@ let main () =
     with_connection begin fun r w ->
       let log_incoming msg =
         begin match msg with
-          | Book { typ; data = { chksum; bids; asks; _ }; _ } ->
-            if typ = `Partial then
-              let bids =
-                List.sort bids ~compare:begin fun { price = p1; _ } { price = p2 ; _ } ->
-                  Int.neg (Float.compare p1 p2)
-                end in
-              let asks =
-                List.sort asks ~compare:begin fun { price = p1; _ } { price = p2 ; _ } ->
-                  Float.compare p1 p2
-                end in
-              begin match check_book ~bids ~asks = Stdlib.Int64.to_int32 chksum with
+          | Subscribed (chan, v) -> Pipe.write_without_pushback_if_open subs_w (chan, v)
+          | BookSnapshot (_, { chksum; bids; asks; _ }) ->
+            let bids =
+              List.sort bids ~compare:begin fun { price = p1; _ } { price = p2 ; _ } ->
+                Int.neg (Float.compare p1 p2)
+              end in
+            let asks =
+              List.sort asks ~compare:begin fun { price = p1; _ } { price = p2 ; _ } ->
+                Float.compare p1 p2
+              end in
+            begin match check_book ~bids ~asks = Stdlib.Int64.to_int32 chksum with
               | true -> Log.debug (fun m -> m "Checksum OK")
               | false -> Log.debug (fun m -> m "Checksum ERROR")
-              end
+            end
           | _ -> ()
         end ;
         Log_async.debug (fun m -> m "%a" pp msg) in
