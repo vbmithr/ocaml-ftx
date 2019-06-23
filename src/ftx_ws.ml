@@ -7,6 +7,9 @@ type channel =
   | Orderbook
 [@@deriving sexp]
 
+let pp_print_channel ppf t =
+  Format.fprintf ppf "%a" (Sexplib.Sexp.pp) (sexp_of_channel t)
+
 let channel_of_string = function
   | "ticker" -> Ticker
   | "trades" -> Trades

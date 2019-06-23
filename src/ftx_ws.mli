@@ -2,7 +2,9 @@ type channel =
   | Ticker
   | Trades
   | Orderbook
+[@@deriving sexp]
 
+val pp_print_channel : Format.formatter -> channel -> unit
 val channel_of_string : string -> channel
 val channel_encoding : channel Json_encoding.encoding
 
