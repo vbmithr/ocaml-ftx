@@ -4,8 +4,9 @@ open Async
 open Ftx_ws
 open Ftx_ws_async
 
-let src = Logs.Src.create "ftx.ws-test"
-    ~doc:"Ftx API - WS test application"
+let src = Logs.Src.create "ftx.ws-test"  ~doc:"Ftx API - WS test application"
+module Log = (val Logs.src_log src : Logs.LOG)
+module Log_async = (val Logs_async.src_log src : Logs_async.LOG)
 
 let markets = ref []
 
@@ -55,9 +56,9 @@ let process_user_cmd w =
      *   let pairs = List.map ~f:Pair.of_string_exn pair in
      *   Pipe.write w (Subscribe (book10 pairs)) *)
     | h :: _ ->
-      Logs_async.err (fun m -> m "Unknown command %s" h)
+      Log_async.err (fun m -> m "Unknown command %s" h)
     | [] ->
-      Logs_async.err ~src (fun m -> m "Empty command")
+      Log_async.err (fun m -> m "Empty command")
   in
   let rec loop () = Reader.(read_line @@ Lazy.force stdin) >>= function
     | `Eof -> Deferred.unit
@@ -73,7 +74,24 @@ let main () =
     markets := List.map mkts ~f:(fun { name; _ } -> name) ;
     with_connection begin fun r w ->
       let log_incoming msg =
-        Logs_async.debug ~src (fun m -> m "%a" pp msg) in
+        begin match msg with
+          | Book { typ; data = { chksum; bids; asks; _ }; _ } ->
+            if typ = `Partial then
+              let bids =
+                List.sort bids ~compare:begin fun { price = p1; _ } { price = p2 ; _ } ->
+                  Int.neg (Float.compare p1 p2)
+                end in
+              let asks =
+                List.sort asks ~compare:begin fun { price = p1; _ } { price = p2 ; _ } ->
+                  Float.compare p1 p2
+                end in
+              begin match check_book ~bids ~asks = Stdlib.Int64.to_int32 chksum with
+              | true -> Log.debug (fun m -> m "Checksum OK")
+              | false -> Log.debug (fun m -> m "Checksum ERROR")
+              end
+          | _ -> ()
+        end ;
+        Log_async.debug (fun m -> m "%a" pp msg) in
       Deferred.all_unit [
         process_user_cmd w ;
         Pipe.iter r ~f:log_incoming

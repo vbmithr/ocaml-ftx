@@ -49,6 +49,9 @@ type book = {
   action: [ `Partial | `Update ] ;
 } [@@deriving sexp]
 
+val check_book : bids:quote list -> asks:quote list -> int32
+(** bids and asks must be in best order *)
+
 type trade = {
   id: int option ;
   ts: Ptime.t ;

@@ -108,6 +108,36 @@ type book = {
   action: [`Partial | `Update]
 } [@@deriving sexp]
 
+let check_book ~bids ~asks =
+  let buf = Buffer.create 13 in
+  let add_float buf a =
+    let frac, _ = Float.modf a in
+    Buffer.add_string buf (Printf.sprintf "%F" a) ;
+    if frac = 0. then Buffer.add_char buf '0' ;
+    Buffer.add_char buf ':' in
+  let rec chk b a =
+    match b, a with
+    | { price = pb ; qty = qb } :: rb, { price = pa ; qty = qa } :: ra ->
+      add_float buf pb ;
+      add_float buf qb ;
+      add_float buf pa ;
+      add_float buf qa ;
+      chk rb ra
+    | { price = pb ; qty = qb } :: rb, [] ->
+      add_float buf pb ;
+      add_float buf qb ;
+      chk rb []
+    | [], { price = pa ; qty = qa } :: ra ->
+      add_float buf pa ;
+      add_float buf qa ;
+      chk [] ra
+    | [], [] -> ()
+  in
+  chk bids asks ;
+  let prehash = Buffer.contents buf in
+  Checkseum.Crc32.(digest_string prehash 0 (Buffer.length buf - 1) default) |>
+  Optint.to_int32
+
 let book_encoding =
   let open Json_encoding in
   conv
