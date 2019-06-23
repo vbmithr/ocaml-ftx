@@ -50,7 +50,7 @@ module Ptime = struct
     conv
       (Ptime.to_rfc3339)
       (fun s -> match Ptime.of_rfc3339 s with
-         | Ok (v, None, _) -> v
+         | Ok (v, _, _) -> v
          | _ -> failwith "rfc3339_encoding")
       string
 
