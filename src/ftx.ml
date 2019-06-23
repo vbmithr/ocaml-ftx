@@ -36,7 +36,7 @@ module Ptime = struct
   let sexp_of_t t =
     sexp_of_string (to_rfc3339 ~frac_s:7 t)
 
-  let encoding =
+  let unix_encoding =
     let open Json_encoding in
     conv
       Ptime.to_float_s
@@ -44,4 +44,20 @@ module Ptime = struct
          | None -> invalid_arg "Ptime.encoding"
          | Some ts -> ts)
       float
+
+  let rfc3339_encoding =
+    let open Json_encoding in
+    conv
+      (Ptime.to_rfc3339)
+      (fun s -> match Ptime.of_rfc3339 s with
+         | Ok (v, None, _) -> v
+         | _ -> failwith "rfc3339_encoding")
+      string
+
+  let encoding =
+    let open Json_encoding in
+    union [
+      case unix_encoding (fun a -> Some a) (fun a -> a) ;
+      case rfc3339_encoding (fun a -> Some a) (fun a -> a) ;
+    ]
 end
