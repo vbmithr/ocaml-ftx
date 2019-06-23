@@ -55,7 +55,7 @@ val check_book : bids:quote list -> asks:quote list -> int32
 (** bids and asks must be in best order *)
 
 type trade = {
-  id: int option ;
+  id: int64 option ;
   ts: Ptime.t ;
   price: float ;
   size: float ;

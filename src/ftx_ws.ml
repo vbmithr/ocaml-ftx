@@ -154,7 +154,7 @@ let book_encoding =
        (req "action" typ_encoding))
 
 type trade = {
-  id: int option ;
+  id: int64 option ;
   ts: Ptime.t ;
   price: float ;
   size: float ;
@@ -177,7 +177,7 @@ let trade_encoding =
     (fun (id, ts, price, size, side, liquidation) ->
        { id ; ts ; price ; size ; side ; liquidation })
     (obj6
-       (req "id" (option int))
+       (req "id" (option int53))
        (req "time" Ptime.encoding)
        (req "price" float)
        (req "size" float)
