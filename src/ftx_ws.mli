@@ -67,8 +67,9 @@ type t =
   | Subscribed of channel * string
   | Unsubscribed of channel * string
   | Ticker of string * ticker
-  | Book of book data
-  | Trade of trade list data
+  | BookSnapshot of string * book
+  | Quotes of string * book
+  | Trades of string * trade list
 [@@deriving sexp]
 
 val encoding : t Json_encoding.encoding

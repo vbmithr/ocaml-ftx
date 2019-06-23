@@ -205,8 +205,9 @@ type t =
   | Subscribed of channel * string
   | Unsubscribed of channel * string
   | Ticker of string * ticker
-  | Book of book data
-  | Trade of trade list data
+  | BookSnapshot of string * book
+  | Quotes of string * book
+  | Trades of string * trade list
 [@@deriving sexp]
 
 let error_encoding =
@@ -262,12 +263,16 @@ let encoding =
       (fun (sym, ticker) -> Ticker (sym, ticker)) ;
 
     case (data_encoding book_encoding)
-      (function Book b -> Some b | _ -> None)
-      (fun b -> Book b) ;
+      (fun _ -> assert false)
+      (fun { typ; sym; data; _ } ->
+         match typ with
+         | `Partial -> BookSnapshot (sym, data)
+         | `Update -> Quotes (sym, data))
+    ;
 
     case (data_encoding (list trade_encoding))
-      (function Trade t -> Some t | _ -> None)
-      (fun t -> Trade t) ;
+      (fun _ -> assert false)
+      (fun { sym; data; _ } -> Trades (sym, data)) ;
   ]
 
 let pp ppf t =
