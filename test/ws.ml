@@ -2,7 +2,6 @@ open Core
 open Async
 
 open Ftx_ws
-open Ftx_ws_async
 
 let src = Logs.Src.create "ftx.ws-test"  ~doc:"Ftx API - WS test application"
 module Log = (val Logs.src_log src : Logs.LOG)
@@ -91,7 +90,7 @@ let main () =
     failwith Format.(asprintf "%a" (Fastrest.pp_print_error pp_print_string) e)
   | Ok mkts ->
     markets := List.map mkts ~f:(fun { name; _ } -> name) ;
-    with_connection begin fun r w ->
+    Ftx_ws_async.with_connection_exn begin fun r w ->
       let log_incoming msg =
         begin match msg with
           | Subscribed (chan, v) -> Pipe.write_without_pushback_if_open subs_w (chan, v)
