@@ -4,7 +4,7 @@ open Async
 open Ftx
 open Ftx_ws
 
-let url = Uri.make ~scheme:"https" ~host:"ftexchange.com" ~path:"ws" ()
+let url = Uri.make ~scheme:"https" ~host:"ftx.com" ~path:"ws/" ()
 
 let src = Logs.Src.create "ftx.ws.async"
 module Log = (val Logs.src_log src : Logs.LOG)
