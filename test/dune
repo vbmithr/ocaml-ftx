@@ -1,29 +1,7 @@
-; (test
-;  (name       test)
-;  (modules    test)
-;  (preprocess (pps ppx_jane ppx_sexp_conv))
-;  (libraries
-;    ftx-rest
-;    alcotest-async
-;    logs-async-reporter))
-
-; (executable
-;  (name compta)
-;  (modules compta)
-;  (public_name ftx-compta)
-;  (package ftx-rest)
-;  (preprocess (pps ppx_jane ppx_sexp_conv))
-;  (libraries
-;    logs-async-reporter
-;    ftx-rest
-;    kx-async
-;    ftx-ws
-;    ftx-ws-async))
-
-(executable
- (name ws)
- (modules ws)
- (public_name ftx-ws-cli)
+(executables
+ (names ws leak)
+ (public_names ftx-ws-cli ftx-leak-test)
+ (modules ws leak)
  (package ftx-ws-async)
  (preprocess (pps ppx_jane ppx_sexp_conv))
  (libraries
