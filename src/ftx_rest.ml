@@ -27,17 +27,18 @@ let market_encoding =
   let open Json_encoding in
   conv
     (fun { ask ; bid ; last ; enabled ; name ; priceIncrement ; sizeIncrement } ->
-       (ask, bid, last, enabled, name, priceIncrement, sizeIncrement))
-    (fun (ask, bid, last, enabled, name, priceIncrement, sizeIncrement) ->
+       (), (ask, bid, last, enabled, name, priceIncrement, sizeIncrement))
+    (fun ((), (ask, bid, last, enabled, name, priceIncrement, sizeIncrement)) ->
        { ask ; bid ; last ; enabled ; name ; priceIncrement ; sizeIncrement })
-    (obj7
-       (req "ask" (option float))
-       (req "bid" (option float))
-       (req "last" (option float))
-       (req "enabled" bool)
-       (req "name" string)
-       (req "priceIncrement" float)
-       (req "sizeIncrement" float))
+    (merge_objs unit
+       (obj7
+          (req "ask" (option float))
+          (req "bid" (option float))
+          (req "last" (option float))
+          (req "enabled" bool)
+          (req "name" string)
+          (req "priceIncrement" float)
+          (req "sizeIncrement" float)))
 
 let base_url =
   Uri.make ~scheme:"https" ~host:"ftexchange.com" ()
