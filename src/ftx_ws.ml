@@ -1,5 +1,6 @@
 open Sexplib.Std
 open Ftx
+open Json_encoding
 
 type channel =
   | Ticker
@@ -17,39 +18,51 @@ let channel_of_string = function
   | _ -> invalid_arg "channel_of_string"
 
 let channel_encoding =
-  let open Json_encoding in
   string_enum [
     "ticker", Ticker ;
     "trades", Trades ;
     "orderbook", Orderbook ;
   ]
 
-type subscription = {
-  op: [`Subscribe | `Unsubscribe] ;
-  channel: channel ;
-  sym: string ;
-}
+module Subscription = struct
+  type t = {
+    op: [`Subscribe | `Unsubscribe] ;
+    channel: channel ;
+    sym: string ;
+  } [@@deriving sexp]
 
-let subscribe channel sym = {
-  op = `Subscribe ; channel ; sym }
-let unsubscribe channel sym = {
-  op = `Unsubscribe ; channel ; sym }
+  let compare a b = Pervasives.compare a b
+  let hash = Hashtbl.hash
 
-let subscription_encoding encoding =
-  let open Json_encoding in
-  conv
-    (fun { op ; channel ; sym } -> op, (channel, sym))
-    (fun (op, (channel, sym)) -> { op ; channel ; sym })
-    (merge_objs encoding
-       (obj2
-          (req "channel" channel_encoding)
-          (req "market" string)))
+  let subscribe channel sym = {
+    op = `Subscribe ; channel ; sym }
+  let unsubscribe channel sym = {
+    op = `Unsubscribe ; channel ; sym }
 
-let sub_encoding =
-  let open Json_encoding in
-  subscription_encoding
-    (obj1 (req "op" ((string_enum ["subscribe", `Subscribe ;
-                                   "unsubscribe", `Unsubscribe]))))
+  let encoding encoding =
+    conv
+      (fun { op ; channel ; sym } -> op, (channel, sym))
+      (fun (op, (channel, sym)) -> { op ; channel ; sym })
+      (merge_objs encoding
+         (obj2
+            (req "channel" channel_encoding)
+            (req "market" string)))
+
+  let sub_encoding =
+    string_enum [
+      "subscribe", `Subscribe ;
+      "unsubscribe", `Unsubscribe ;
+    ]
+
+  let subbed_encoding =
+    string_enum [
+      "subscribed", `Subscribe ;
+      "unsubscribed", `Unsubscribe ;
+    ]
+
+  let sub_encoding = encoding (obj1 (req "op" sub_encoding))
+  let subbed_encoding = encoding (obj1 (req "type" subbed_encoding))
+end
 
 type msg = {
   code: int ;
@@ -57,7 +70,6 @@ type msg = {
 } [@@deriving sexp]
 
 let msg_encoding =
-  let open Json_encoding in
   conv
     (fun { code ; msg } -> ((), ( code, msg)))
     (fun ((), (code, msg)) -> { code ; msg })
@@ -74,7 +86,6 @@ type ticker = {
 } [@@deriving sexp]
 
 let ticker_encoding =
-  let open Json_encoding in
   conv
     (fun { bid ; ask ; last ; ts } -> (bid, ask, last, ts))
     (fun (bid, ask, last, ts) -> { bid ; ask ; last ; ts })
@@ -90,14 +101,12 @@ type quote = {
 } [@@deriving sexp]
 
 let quote_encoding =
-  let open Json_encoding in
   conv
     (fun { price ; qty } -> price, qty)
     (fun (price, qty) -> { price ; qty })
     (tup2 float float)
 
 let typ_encoding =
-  let open Json_encoding in
   string_enum [
     "partial", `Partial ;
     "update", `Update ;
@@ -142,7 +151,6 @@ let check_book ~bids ~asks =
   Optint.to_int32
 
 let book_encoding =
-  let open Json_encoding in
   conv
     (fun { ts ; chksum ; bids ; asks ; action } -> (ts, chksum, bids, asks, action))
     (fun (ts, chksum, bids, asks, action) -> { ts ; chksum ; bids ; asks ; action })
@@ -163,14 +171,12 @@ type trade = {
 } [@@deriving sexp]
 
 let side_encoding =
-  let open Json_encoding in
   string_enum [
     "buy", `Buy ;
     "sell", `Sell ;
   ]
 
 let trade_encoding =
-  let open Json_encoding in
   conv
     (fun { id ; ts ; price ; size ; side ; liquidation } ->
        (id, ts, price, size, side, liquidation))
@@ -192,7 +198,6 @@ type 'a data = {
 } [@@deriving sexp]
 
 let data_encoding encoding =
-  let open Json_encoding in
   conv
     (fun { typ ; channel ; sym ; data } -> (typ, channel, sym, data))
     (fun (typ, channel, sym, data) -> { typ ; channel ; sym ; data })
@@ -205,8 +210,7 @@ let data_encoding encoding =
 type t =
   | Error of { code: int ; msg: string }
   | Info of msg
-  | Subscribed of channel * string
-  | Unsubscribed of channel * string
+  | Response of Subscription.t
   | Ticker of string * ticker
   | BookSnapshot of string * book
   | Quotes of string * book
@@ -214,7 +218,6 @@ type t =
 [@@deriving sexp]
 
 let error_encoding =
-  let open Json_encoding in
   conv
     (fun (code, err) -> (), code, err)
     (fun ((), code, err) -> (code, err))
@@ -224,14 +227,12 @@ let error_encoding =
        (req "msg" string))
 
 let info_encoding =
-  let open Json_encoding in
   conv
     (fun msg -> (), msg)
     (fun ((), msg) -> msg)
     (merge_objs (obj1 (req "type" (constant "info"))) msg_encoding)
 
 let ticker_encoding =
-  let open Json_encoding in
   conv
     (fun (sym, ticker) -> ((), (), sym, ticker))
     (fun ((), (), sym, ticker) -> sym, ticker)
@@ -242,24 +243,14 @@ let ticker_encoding =
        (req "data" ticker_encoding))
 
 let encoding =
-  let open Json_encoding in
   union [
     case error_encoding
       (function Error { code; msg } -> Some (code, msg) | _ -> None)
       (fun (code, msg) -> Error { code ; msg }) ;
     case info_encoding (function Info msg -> Some msg | _ -> None) (fun msg -> Info msg) ;
-    case (subscription_encoding
-            (obj1 (req "type" (string_enum ["subscribed", `Subscribe ;
-                                            "unsubscribed", `Unsubscribe]))))
-      (function
-        | Subscribed (channel, sym) -> Some { op = `Subscribe ; channel ; sym }
-        | Unsubscribed (channel, sym) -> Some { op = `Unsubscribe ; channel ; sym }
-        | _ -> None)
-      (fun { op ; channel; sym } ->
-         match op with
-         | `Subscribe -> Subscribed (channel, sym)
-         | `Unsubscribe -> Unsubscribed (channel, sym)
-      ) ;
+    case Subscription.subbed_encoding
+      (function Response sub -> Some sub | _ -> None)
+      (fun sub -> Response sub) ;
 
     case ticker_encoding
       (function Ticker (sym, ticker) -> Some (sym, ticker) | _ -> None)

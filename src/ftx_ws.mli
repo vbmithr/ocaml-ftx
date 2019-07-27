@@ -8,16 +8,22 @@ val pp_print_channel : Format.formatter -> channel -> unit
 val channel_of_string : string -> channel
 val channel_encoding : channel Json_encoding.encoding
 
-type subscription = {
-  op: [`Subscribe | `Unsubscribe] ;
-  channel: channel ;
-  sym: string ;
-}
+module Subscription : sig
+  type t = {
+    op: [`Subscribe | `Unsubscribe] ;
+    channel: channel ;
+    sym: string ;
+  } [@@deriving sexp]
 
-val sub_encoding : subscription Json_encoding.encoding
+  val compare : t -> t -> int
+  val hash : t -> int
 
-val subscribe : channel -> string -> subscription
-val unsubscribe : channel -> string -> subscription
+  val sub_encoding : t Json_encoding.encoding
+  val subbed_encoding : t Json_encoding.encoding
+
+  val subscribe : channel -> string -> t
+  val unsubscribe : channel -> string -> t
+end
 
 type msg = {
   code: int ;
@@ -66,8 +72,7 @@ type trade = {
 type t =
   | Error of { code: int ; msg: string }
   | Info of msg
-  | Subscribed of channel * string
-  | Unsubscribed of channel * string
+  | Response of Subscription.t
   | Ticker of string * ticker
   | BookSnapshot of string * book
   | Quotes of string * book

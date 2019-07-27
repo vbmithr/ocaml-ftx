@@ -13,6 +13,7 @@ let subs_r, subs_w = Pipe.create ()
 
 let process_user_cmd w =
   let process s =
+    let open Subscription in
     match String.split s ~on:' ' with
     | "all" :: _ ->
       Deferred.List.iter !markets ~f:begin fun sym ->
@@ -93,7 +94,7 @@ let main () =
     Ftx_ws_async.with_connection_exn begin fun r w ->
       let log_incoming msg =
         begin match msg with
-          | Subscribed (chan, v) -> Pipe.write_without_pushback_if_open subs_w (chan, v)
+          | Response sub -> Pipe.write_without_pushback_if_open subs_w sub
           | BookSnapshot (_, { chksum; bids; asks; _ }) ->
             let bids =
               List.sort bids ~compare:begin fun { price = p1; _ } { price = p2 ; _ } ->

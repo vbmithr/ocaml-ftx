@@ -21,7 +21,7 @@ let connect () =
     don't_wait_for @@
     Pipe.transfer ws_read w ~f:begin fun cmd ->
       let doc =
-        match Ezjsonm_encoding.construct sub_encoding cmd with
+        match Ezjsonm_encoding.construct Subscription.sub_encoding cmd with
         | `A _ | `O _ as a -> Ezjsonm.to_string a
         | _ -> invalid_arg "not a json document" in
       Log.debug (fun m -> m "-> %s" doc) ;
@@ -45,7 +45,7 @@ let with_connection f =
     don't_wait_for @@
     Pipe.transfer ws_read w ~f:begin fun cmd ->
       let doc =
-        match Ezjsonm_encoding.construct sub_encoding cmd with
+        match Ezjsonm_encoding.construct Subscription.sub_encoding cmd with
         | `A _ | `O _ as a -> Ezjsonm.to_string a
         | _ -> invalid_arg "not a json document" in
       Log.debug (fun m -> m "-> %s" doc) ;
