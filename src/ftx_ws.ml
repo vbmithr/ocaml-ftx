@@ -31,7 +31,7 @@ module Subscription = struct
     sym: string ;
   } [@@deriving sexp]
 
-  let compare a b = Pervasives.compare a b
+  let compare a b = Stdlib.compare a b
   let hash = Hashtbl.hash
 
   let subscribe channel sym = {
