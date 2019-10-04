@@ -87,8 +87,7 @@ let process_user_cmd w =
 
 let main () =
   Fastrest.request Ftx_rest.markets >>= function
-  | Error e ->
-    failwith Format.(asprintf "%a" (Fastrest.pp_print_error pp_print_string) e)
+  | Error e -> Error.raise e
   | Ok mkts ->
     markets := List.map mkts ~f:(fun { name; _ } -> name) ;
     Ftx_ws_async.with_connection_exn begin fun r w ->

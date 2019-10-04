@@ -4,9 +4,9 @@ open Fastrest
 let result_encoding encoding =
   let open Json_encoding in
   conv
-    (function Ok v -> (true, None, Some v) | Error e -> (false, Some e, None))
+    (fun _ -> assert false)
     (function (true, None, Some v) -> Ok v
-            | (false, Some msg, None) -> Error msg
+            | (false, Some msg, None) -> Error (Error.of_string msg)
             | _ -> invalid_arg "result_encoding")
     (obj3
        (req "success" bool)

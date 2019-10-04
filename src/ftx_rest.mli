@@ -10,4 +10,4 @@ type market = {
   sizeIncrement: float ;
 } [@@deriving sexp]
 
-val markets : (form, market list, string) service
+val markets : (form, market list) service
