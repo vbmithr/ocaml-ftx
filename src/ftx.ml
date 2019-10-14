@@ -7,13 +7,6 @@ let strfloat =
     case string (fun s -> Some (string_of_float s)) float_of_string ;
   ]
 
-(* let side_encoding =
- *   let open Json_encoding in
- *   string_enum [
- *     "buy", `buy ;
- *     "sell", `sell ;
- *   ] *)
-
 module Ezjsonm_encoding = struct
   include Json_encoding.Make(Json_repr.Ezjsonm)
 

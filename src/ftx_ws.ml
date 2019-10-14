@@ -166,14 +166,14 @@ type trade = {
   ts: Ptime.t ;
   price: float ;
   size: float ;
-  side: [`Buy | `Sell] ;
+  side: Fixtypes.Side.t ;
   liquidation: bool ;
 } [@@deriving sexp]
 
 let side_encoding =
   string_enum [
-    "buy", `Buy ;
-    "sell", `Sell ;
+    "buy", Fixtypes.Side.Buy ;
+    "sell", Sell ;
   ]
 
 let trade_encoding =

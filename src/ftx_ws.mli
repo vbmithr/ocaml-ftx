@@ -65,7 +65,7 @@ type trade = {
   ts: Ptime.t ;
   price: float ;
   size: float ;
-  side: [`Buy | `Sell] ;
+  side: Fixtypes.Side.t ;
   liquidation: bool ;
 } [@@deriving sexp]
 
