@@ -8,12 +8,12 @@ type stats = {
   ask: float;
   bid: float;
   last: float option;
-  price: float;
-  change1h: float;
-  change24h: float;
-  changeBod: float;
-  quoteVolume24h: float;
-  volumeUsd24h: float;
+  price: float option;
+  change1h: float option;
+  change24h: float option;
+  changeBod: float option;
+  quoteVolume24h: float option;
+  volumeUsd24h: float option;
 } [@@deriving sexp]
 
 type market = {

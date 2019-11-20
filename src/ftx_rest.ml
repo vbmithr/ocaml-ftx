@@ -41,12 +41,12 @@ type stats = {
   ask: float;
   bid: float;
   last: float option;
-  price: float;
-  change1h: float;
-  change24h: float;
-  changeBod: float;
-  quoteVolume24h: float;
-  volumeUsd24h: float;
+  price: float option;
+  change1h: float option;
+  change24h: float option;
+  changeBod: float option;
+  quoteVolume24h: float option;
+  volumeUsd24h: float option;
 } [@@deriving sexp]
 
 let stats_encoding =
@@ -58,12 +58,12 @@ let stats_encoding =
        (req "ask" float)
        (req "bid" float)
        (req "last" (option float))
-       (req "price" float)
-       (req "change1h" float)
-       (req "change24h" float)
-       (req "changeBod" float)
-       (req "quoteVolume24h" float)
-       (req "volumeUsd24h" float))
+       (req "price" (option float))
+       (opt "change1h" float)
+       (opt "change24h" float)
+       (opt "changeBod" float)
+       (opt "quoteVolume24h" float)
+       (opt "volumeUsd24h" float))
 
 type market = {
   name: string ;
