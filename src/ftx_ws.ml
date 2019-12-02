@@ -112,12 +112,13 @@ let typ_encoding =
     "update", `Update ;
   ]
 
+module FloatMap = Map.Make(Float)
+
 type book = {
   ts: Ptime.t ;
-  chksum: int64 ;
+  chksum: float ;
   bids: quote list ;
   asks: quote list ;
-  action: [`Partial | `Update]
 } [@@deriving sexp]
 
 let check_book ~bids ~asks =
@@ -127,36 +128,37 @@ let check_book ~bids ~asks =
     Buffer.add_string buf (Printf.sprintf "%F" a) ;
     if frac = 0. then Buffer.add_char buf '0' ;
     Buffer.add_char buf ':' in
-  let rec chk b a =
-    match b, a with
-    | { price = pb ; qty = qb } :: rb, { price = pa ; qty = qa } :: ra ->
+  let rec chk bi b ai a =
+    let b = if bi < 100 then b else FloatMap.empty in
+    let a = if ai < 100 then a else FloatMap.empty in
+    match FloatMap.max_binding_opt b, FloatMap.min_binding_opt a with
+    | Some (pb, qb), Some (pa, qa) ->
       add_float buf pb ;
       add_float buf qb ;
       add_float buf pa ;
       add_float buf qa ;
-      chk rb ra
-    | { price = pb ; qty = qb } :: rb, [] ->
+      chk (succ bi) (FloatMap.remove pb b) (succ ai) (FloatMap.remove pa a)
+    | Some (pb, qb), None ->
       add_float buf pb ;
       add_float buf qb ;
-      chk rb []
-    | [], { price = pa ; qty = qa } :: ra ->
+      chk (succ bi) (FloatMap.remove pb b) (succ ai) a
+    | None, Some (pa, qa) ->
       add_float buf pa ;
       add_float buf qa ;
-      chk [] ra
-    | [], [] -> ()
+      chk (succ bi) b (succ ai) (FloatMap.remove pa a)
+    | None, None -> ()
   in
-  chk bids asks ;
+  chk 0 bids 0 asks ;
   let prehash = Buffer.contents buf in
-  Checkseum.Crc32.(digest_string prehash 0 (Buffer.length buf - 1) default) |>
-  Optint.to_int32
+  Checkseum.Crc32.(digest_string prehash 0 (Buffer.length buf - 1) default)
 
 let book_encoding =
   conv
-    (fun { ts ; chksum ; bids ; asks ; action } -> (ts, chksum, bids, asks, action))
-    (fun (ts, chksum, bids, asks, action) -> { ts ; chksum ; bids ; asks ; action })
+    (fun _ -> assert false)
+    (fun (ts, chksum, bids, asks, _) -> { ts ; chksum ; bids ; asks })
     (obj5
        (req "time" Ptime.encoding)
-       (req "checksum" int53)
+       (req "checksum" float)
        (req "bids" (list quote_encoding))
        (req "asks" (list quote_encoding))
        (req "action" typ_encoding))

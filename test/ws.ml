@@ -91,22 +91,31 @@ let main () =
   | Ok mkts ->
     markets := List.map mkts ~f:(fun { name; _ } -> name) ;
     Ftx_ws_async.with_connection_exn begin fun r w ->
+      let bks = String.Table.create () in
       let log_incoming msg =
         begin match msg with
+          | Quotes (sym, { ts = _; chksum; bids; asks }) ->
+            let bbook, abook = String.Table.find_exn bks sym in
+            let bbook = List.fold_left bids ~init:bbook ~f:(fun a { price; qty } ->
+                if qty = 0. then FloatMap.remove price a
+                else FloatMap.add price qty a) in
+            let abook = List.fold_left asks ~init:abook ~f:(fun a { price; qty } ->
+                if qty = 0. then FloatMap.remove price a
+                else FloatMap.add price qty a) in
+            if not (check_book ~bids:bbook ~asks:abook = Optint.of_float chksum) then
+              failwith "Checksum ERROR" ;
+            String.Table.set bks ~key:sym ~data:(bbook, abook)
           | Response sub -> Pipe.write_without_pushback_if_open subs_w sub
-          | BookSnapshot (_, { chksum; bids; asks; _ }) ->
-            let bids =
-              List.sort bids ~compare:begin fun { price = p1; _ } { price = p2 ; _ } ->
-                Int.neg (Float.compare p1 p2)
-              end in
-            let asks =
-              List.sort asks ~compare:begin fun { price = p1; _ } { price = p2 ; _ } ->
-                Float.compare p1 p2
-              end in
-            begin match check_book ~bids ~asks = Stdlib.Int64.to_int32 chksum with
+          | BookSnapshot (sym, { chksum; bids; asks; _ }) ->
+            let bids = List.fold_left ~init:FloatMap.empty
+                ~f:(fun a {Ftx_ws.price; qty} -> FloatMap.add price qty a) bids in
+            let asks = List.fold_left ~init:FloatMap.empty
+                ~f:(fun a {Ftx_ws.price; qty} -> FloatMap.add price qty a) asks in
+            begin match check_book ~bids ~asks = Optint.of_float chksum with
               | true -> Log.debug (fun m -> m "Checksum OK")
-              | false -> Log.debug (fun m -> m "Checksum ERROR")
-            end
+              | false ->             failwith "Checksum ERROR"
+            end ;
+            String.Table.set bks ~key:sym ~data:(bids, asks) ;
           | _ -> ()
         end ;
         Log_async.debug (fun m -> m "%a" pp msg) in

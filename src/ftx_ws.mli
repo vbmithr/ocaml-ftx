@@ -51,14 +51,13 @@ type quote = {
 
 type book = {
   ts: Ptime.t ;
-  chksum: int64 ;
+  chksum: float ;
   bids: quote list ;
   asks: quote list ;
-  action: [ `Partial | `Update ] ;
 } [@@deriving sexp]
 
-val check_book : bids:quote list -> asks:quote list -> int32
-(** bids and asks must be in best order *)
+module FloatMap : Map.S with type key = float
+val check_book : bids:float FloatMap.t -> asks:float FloatMap.t -> Optint.t
 
 type trade = {
   id: int64 option ;
