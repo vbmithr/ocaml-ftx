@@ -94,7 +94,7 @@ let main () =
       let bks = String.Table.create () in
       let log_incoming msg =
         begin match msg with
-          | Quotes (sym, { ts = _; chksum; bids; asks }) ->
+          | Quotes (sym, { chksum; bids; asks; action = `Update; _ }) ->
             let bbook, abook = String.Table.find_exn bks sym in
             let bbook = List.fold_left bids ~init:bbook ~f:(fun a { price; qty } ->
                 if qty = 0. then FloatMap.remove price a
@@ -106,7 +106,7 @@ let main () =
               failwith "Checksum ERROR" ;
             String.Table.set bks ~key:sym ~data:(bbook, abook)
           | Response sub -> Pipe.write_without_pushback_if_open subs_w sub
-          | BookSnapshot (sym, { chksum; bids; asks; _ }) ->
+          | Quotes (sym, { chksum; bids; asks; action = `Partial; _ }) ->
             let bids = List.fold_left ~init:FloatMap.empty
                 ~f:(fun a {Ftx_ws.price; qty} -> FloatMap.add price qty a) bids in
             let asks = List.fold_left ~init:FloatMap.empty

@@ -119,6 +119,7 @@ type book = {
   chksum: float ;
   bids: quote list ;
   asks: quote list ;
+  action: [`Partial | `Update]
 } [@@deriving sexp]
 
 let check_book ~bids ~asks =
@@ -155,7 +156,7 @@ let check_book ~bids ~asks =
 let book_encoding =
   conv
     (fun _ -> assert false)
-    (fun (ts, chksum, bids, asks, _) -> { ts ; chksum ; bids ; asks })
+    (fun (ts, chksum, bids, asks, action) -> { ts ; chksum ; bids ; asks ; action })
     (obj5
        (req "time" Ptime.encoding)
        (req "checksum" float)
@@ -214,7 +215,6 @@ type t =
   | Info of msg
   | Response of Subscription.t
   | Ticker of string * ticker
-  | BookSnapshot of string * book
   | Quotes of string * book
   | Trades of string * trade list
 [@@deriving sexp]
@@ -260,11 +260,7 @@ let encoding =
 
     case (data_encoding book_encoding)
       (fun _ -> assert false)
-      (fun { typ; sym; data; _ } ->
-         match typ with
-         | `Partial -> BookSnapshot (sym, data)
-         | `Update -> Quotes (sym, data))
-    ;
+      (fun { sym; data; _ } -> Quotes (sym, data)) ;
 
     case (data_encoding (list trade_encoding))
       (fun _ -> assert false)

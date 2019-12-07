@@ -54,6 +54,7 @@ type book = {
   chksum: float ;
   bids: quote list ;
   asks: quote list ;
+  action : [ `Partial | `Update ] ;
 } [@@deriving sexp]
 
 module FloatMap : Map.S with type key = float
@@ -73,7 +74,6 @@ type t =
   | Info of msg
   | Response of Subscription.t
   | Ticker of string * ticker
-  | BookSnapshot of string * book
   | Quotes of string * book
   | Trades of string * trade list
 [@@deriving sexp]
