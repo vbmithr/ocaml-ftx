@@ -1,3 +1,5 @@
+val url : Uri.t
+
 type channel =
   | Ticker
   | Trades
@@ -14,6 +16,10 @@ module Subscription : sig
     channel: channel ;
     sym: string ;
   } [@@deriving sexp]
+
+  module Set : Set.S with type elt := t
+  module Map : Map.S with type key := t
+  module Table : Hashtbl.S with type key := t
 
   val compare : t -> t -> int
   val hash : t -> int
@@ -33,6 +39,8 @@ type msg = {
 type ticker = {
   bid : float option ;
   ask : float option ;
+  bidSize: float option ;
+  askSize: float option ;
   last : float option ;
   ts : Ptime.t ;
 }

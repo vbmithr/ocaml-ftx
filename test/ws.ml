@@ -90,7 +90,7 @@ let main () =
   | Error e -> Error.raise e
   | Ok mkts ->
     markets := List.map mkts ~f:(fun { name; _ } -> name) ;
-    Ftx_ws_async.with_connection_exn begin fun r w ->
+    Ftx_ws_async.with_connection_exn url ~f:begin fun r w ->
       let bks = String.Table.create () in
       let log_incoming msg =
         begin match msg with
@@ -108,9 +108,9 @@ let main () =
           | Response sub -> Pipe.write_without_pushback_if_open subs_w sub
           | Quotes (sym, { chksum; bids; asks; action = `Partial; _ }) ->
             let bids = List.fold_left ~init:FloatMap.empty
-                ~f:(fun a {Ftx_ws.price; qty} -> FloatMap.add price qty a) bids in
+                ~f:(fun a {price; qty} -> FloatMap.add price qty a) bids in
             let asks = List.fold_left ~init:FloatMap.empty
-                ~f:(fun a {Ftx_ws.price; qty} -> FloatMap.add price qty a) asks in
+                ~f:(fun a {price; qty} -> FloatMap.add price qty a) asks in
             begin match check_book ~bids ~asks = Optint.of_float chksum with
               | true -> Log.debug (fun m -> m "Checksum OK")
               | false ->             failwith "Checksum ERROR"

@@ -2,6 +2,8 @@ open Sexplib.Std
 open Ftx
 open Json_encoding
 
+let url = Uri.make ~scheme:"https" ~host:"ftx.com" ~path:"ws/" ()
+
 type channel =
   | Ticker
   | Trades
@@ -25,14 +27,21 @@ let channel_encoding =
   ]
 
 module Subscription = struct
-  type t = {
-    op: [`Subscribe | `Unsubscribe] ;
-    channel: channel ;
-    sym: string ;
-  } [@@deriving sexp]
+  module T = struct
+    type t = {
+      op: [`Subscribe | `Unsubscribe] ;
+      channel: channel ;
+      sym: string ;
+    } [@@deriving sexp]
 
-  let compare a b = Stdlib.compare a b
-  let hash = Hashtbl.hash
+    let compare a b = Stdlib.compare a b
+    let equal a b = compare a b = 0
+    let hash = Hashtbl.hash
+  end
+  include T
+  module Set = Set.Make(T)
+  module Map = Map.Make(T)
+  module Table = Hashtbl.Make(T)
 
   let subscribe channel sym = {
     op = `Subscribe ; channel ; sym }
@@ -81,17 +90,22 @@ let msg_encoding =
 type ticker = {
   bid : float option ;
   ask : float option ;
+  bidSize: float option ;
+  askSize: float option ;
   last : float option ;
   ts : Ptime.t ;
 } [@@deriving sexp]
 
 let ticker_encoding =
   conv
-    (fun { bid ; ask ; last ; ts } -> (bid, ask, last, ts))
-    (fun (bid, ask, last, ts) -> { bid ; ask ; last ; ts })
-    (obj4
+    (fun _ -> assert false)
+    (fun (bid, ask, bidSize, askSize, last, ts) ->
+       { bid ; ask ; bidSize; askSize; last ; ts })
+    (obj6
        (req "bid" (option float))
        (req "ask" (option float))
+       (req "bidSize" (option float))
+       (req "askSize" (option float))
        (req "last" (option float))
        (req "time" Ptime.encoding))
 

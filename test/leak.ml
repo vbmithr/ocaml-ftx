@@ -4,7 +4,8 @@ open Async
 let rec inner = function
   | 0 -> Deferred.unit
   | n when n > 0 ->
-    Ftx_ws_async.with_connection_exn begin fun _r _w ->
+    Ftx_ws_async.with_connection_exn
+      Ftx_ws.url ~f:begin fun _r _w ->
       Logs_async.app (fun m -> m "inner %d" n)
     end >>= fun () ->
     Clock_ns.after (Time_ns.Span.of_int_sec 3) >>= fun () ->

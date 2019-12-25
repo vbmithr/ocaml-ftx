@@ -32,4 +32,4 @@
  (public_name ftx-ws-async)
  (modules ftx_ws_async)
  (preprocess (pps ppx_sexp_conv))
- (libraries ezjsonm ftx_ws core async fastws-async))
+ (libraries uri-sexp ezjsonm ftx_ws core async fastws-async))
