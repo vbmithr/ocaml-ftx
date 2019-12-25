@@ -28,24 +28,29 @@ module T = struct
 end
 include T
 
+let mk_client_read r =
+  Pipe.map r ~f:begin fun msg ->
+    Ezjsonm_encoding.destruct_safe encoding (Ezjsonm.from_string msg)
+  end
+
+let mk_client_write w =
+  Pipe.create_writer begin fun ws_read ->
+    Pipe.transfer ws_read w ~f:begin fun cmd ->
+      let doc =
+        match Ezjsonm_encoding.construct Subscription.sub_encoding cmd with
+        | `A _ | `O _ as a -> Ezjsonm.to_string a
+        | _ -> invalid_arg "not a json document" in
+      Log.debug (fun m -> m "-> %s" doc) ;
+      doc
+    end
+  end
+
 let connect url =
   Deferred.Or_error.map (Fastws_async.EZ.connect url)
     ~f:begin fun { r; w; _ } ->
-      let client_read = Pipe.map r ~f:begin fun msg ->
-          Ezjsonm_encoding.destruct_safe encoding (Ezjsonm.from_string msg)
-        end in
-      let client_write = Pipe.create_writer begin fun ws_read ->
-          Pipe.transfer ws_read w ~f:begin fun cmd ->
-            let doc =
-              match Ezjsonm_encoding.construct Subscription.sub_encoding cmd with
-              | `A _ | `O _ as a -> Ezjsonm.to_string a
-              | _ -> invalid_arg "not a json document" in
-            Log.debug (fun m -> m "-> %s" doc) ;
-            doc
-          end
-        end in
+      let client_write = mk_client_write w in
       (Pipe.closed client_write >>> fun () -> Pipe.close w) ;
-      create client_read client_write
+      create (mk_client_read r) client_write
     end
 
 module Persistent = struct
@@ -62,22 +67,7 @@ let connect_exn url =
 
 let with_connection ~f url =
   Fastws_async.EZ.with_connection url ~f:begin fun r w ->
-    let r = Pipe.map r ~f:begin fun msg ->
-        Ezjsonm_encoding.destruct_safe encoding (Ezjsonm.from_string msg)
-      end in
-    let ws_read, client_write = Pipe.create () in
-    don't_wait_for @@
-    Pipe.transfer ws_read w ~f:begin fun cmd ->
-      let doc =
-        match Ezjsonm_encoding.construct Subscription.sub_encoding cmd with
-        | `A _ | `O _ as a -> Ezjsonm.to_string a
-        | _ -> invalid_arg "not a json document" in
-      Log.debug (fun m -> m "-> %s" doc) ;
-      doc
-    end ;
-    Monitor.protect
-      (fun () -> f r client_write)
-      ~finally:(fun () -> Pipe.close_read ws_read ; Deferred.unit)
+    f (mk_client_read r) (mk_client_write w)
   end
 
 let with_connection_exn ~f url =
