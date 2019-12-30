@@ -283,3 +283,13 @@ let encoding =
 
 let pp ppf t =
   Format.fprintf ppf "%a" Sexplib.Sexp.pp (sexp_of_t t)
+
+let of_string msg =
+  Ezjsonm_encoding.destruct_safe encoding (Ezjsonm.from_string msg)
+
+let to_string t =
+  match Ezjsonm_encoding.construct Subscription.sub_encoding t with
+  | `A _ | `O _ as a -> Ezjsonm.to_string a
+  | #Json_repr.ezjsonm -> assert false
+
+

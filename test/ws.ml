@@ -90,7 +90,7 @@ let main () =
   | Error e -> Error.raise e
   | Ok mkts ->
     markets := List.map mkts ~f:(fun { name; _ } -> name) ;
-    Ftx_ws_async.with_connection_exn url ~f:begin fun r w ->
+    Fastws_async.with_connection url ~to_string ~of_string begin fun _ r w ->
       let bks = String.Table.create () in
       let log_incoming msg =
         begin match msg with

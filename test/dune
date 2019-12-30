@@ -11,11 +11,13 @@
  (names ws leak)
  (public_names ftx-ws-cli ftx-leak-test)
  (modules ws leak)
- (package ftx-ws-async)
+ (package ftx-ws)
  (preprocess (pps ppx_jane ppx_sexp_conv))
  (libraries
+   core
+   async
+   fastws-async
    logs-async-reporter
    fastrest
    ftx-rest
-   ftx-ws
-   ftx-ws-async))
+   ftx-ws))

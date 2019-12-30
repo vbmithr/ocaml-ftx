@@ -1,11 +1,11 @@
 open Core
 open Async
+open Ftx_ws
 
 let rec inner = function
   | 0 -> Deferred.unit
   | n when n > 0 ->
-    Ftx_ws_async.with_connection_exn
-      Ftx_ws.url ~f:begin fun _r _w ->
+    Fastws_async.with_connection ~of_string ~to_string Ftx_ws.url begin fun _ _ _ ->
       Logs_async.app (fun m -> m "inner %d" n)
     end >>= fun () ->
     Clock_ns.after (Time_ns.Span.of_int_sec 3) >>= fun () ->

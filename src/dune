@@ -26,10 +26,3 @@
  (modules ftx_ws)
  (preprocess (pps ppx_sexp_conv))
  (libraries fixtypes ftx ptime uri ocplib-json-typed checkseum))
-
-(library
- (name        ftx_ws_async)
- (public_name ftx-ws-async)
- (modules ftx_ws_async)
- (preprocess (pps ppx_sexp_conv))
- (libraries uri-sexp ezjsonm ftx_ws core async fastws-async))
