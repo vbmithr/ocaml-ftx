@@ -269,13 +269,15 @@ let encoding =
     case ping_encoding (function Ping -> Some () | _ -> None) (fun () -> Pong) ;
     case pong_encoding (function Pong -> Some () | _ -> None) (fun () -> Pong) ;
 
-    case (merge_objs (obj1 (req "op" (constant "subscribed"))) Subscription.encoding)
-      (fun _ -> assert false) (fun ((), { Subscription.channel; sym }) ->
-          Subscribed { channel; sym }) ;
+    case (merge_objs (obj1 (req "type" (constant "subscribed"))) Subscription.encoding)
+      (function Subscribed sub -> Some ((), sub) | _ -> None)
+      (fun ((), { Subscription.channel; sym }) ->
+         Subscribed { channel; sym }) ;
 
-    case (merge_objs (obj1 (req "op" (constant "unsubscribe"))) Subscription.encoding)
-      (fun _ -> assert false) (fun ((), { Subscription.channel; sym }) ->
-          Unsubscribed { channel; sym }) ;
+    case (merge_objs (obj1 (req "type" (constant "unsubscribed"))) Subscription.encoding)
+      (function Unsubscribed sub -> Some ((), sub) | _ -> None)
+      (fun ((), { Subscription.channel; sym }) ->
+         Unsubscribed { channel; sym }) ;
 
     case (merge_objs (obj1 (req "op" (constant "subscribe"))) Subscription.encoding)
       (function Subscribe sub -> Some ((), sub) | _ -> None) (fun _ -> assert false) ;
