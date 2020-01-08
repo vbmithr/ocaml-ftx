@@ -13,62 +13,55 @@ let subs_r, subs_w = Pipe.create ()
 
 let process_user_cmd w =
   let process s =
-    let open Subscription in
     match String.split s ~on:' ' with
     | "all" :: _ ->
       Deferred.List.iter !markets ~f:begin fun sym ->
-        Pipe.write w (subscribe Trades sym) >>= fun () ->
+        Pipe.write w (trades_sub sym) >>= fun () ->
         begin Pipe.read subs_r >>= function
           | `Eof -> assert false
           | `Ok _ -> Deferred.unit
         end >>= fun () ->
-        Pipe.write w (subscribe Orderbook sym) >>= fun () ->
+        Pipe.write w (books_sub sym) >>= fun () ->
         Pipe.read subs_r >>= function
         | `Eof -> assert false
         | `Ok _ -> Deferred.unit
       end
     | "tickers" :: _ ->
       Deferred.List.iter !markets ~f:begin fun sym ->
-        Pipe.write w (subscribe Ticker sym) >>= fun () ->
+        Pipe.write w (ticker_sub sym) >>= fun () ->
         Pipe.read subs_r >>= function
         | `Eof -> assert false
         | `Ok _ -> Deferred.unit
       end
     | "alltrades" :: _ ->
       Deferred.List.iter !markets ~f:begin fun sym ->
-        Pipe.write w (subscribe Trades sym) >>= fun () ->
+        Pipe.write w (trades_sub sym) >>= fun () ->
         Pipe.read subs_r >>= function
         | `Eof -> assert false
         | `Ok _ -> Deferred.unit
       end
     | "ticker" :: syms ->
       Deferred.List.iter syms ~f:begin fun sym ->
-        Pipe.write w (subscribe Ticker sym)
+        Pipe.write w (ticker_sub sym)
       end
     | "trades" :: syms ->
       Deferred.List.iter syms ~f:begin fun sym ->
-        Pipe.write w (subscribe Trades sym)
+        Pipe.write w (trades_sub sym)
       end
     | "books" :: syms ->
       Deferred.List.iter syms ~f:begin fun sym ->
-        Pipe.write w (subscribe Orderbook sym)
+        Pipe.write w (books_sub sym)
       end
     | "untrades" :: syms ->
       Deferred.List.iter syms ~f:begin fun sym ->
-        Pipe.write w (unsubscribe Trades sym)
+        Pipe.write w (trades_unsub sym)
       end
     | "unbooks" :: syms ->
       Deferred.List.iter syms ~f:begin fun sym ->
-        Pipe.write w (unsubscribe Orderbook sym)
+        Pipe.write w (books_unsub sym)
       end
-    (* | "unsubscribe" :: chanid :: _ ->
-     *   let chanid = int_of_string chanid in
-     *   Pipe.write w (Unsubscribe { chanid ; reqid = None })
-     * | "ping" :: v :: _ ->
-     *   Pipe.write w (Ping (int_of_string_opt v))
-     * | "ping" :: _ ->
-     *   Pipe.write w (Ping None)
-     * | "trades" :: pair ->
+    | "ping" :: _ -> Pipe.write w Ping
+    (* | "trades" :: pair ->
      *   let pairs = List.map ~f:Pair.of_string_exn pair in
      *   Pipe.write w (Subscribe (trades pairs))
      * | "books" :: pair ->
@@ -103,7 +96,7 @@ let main () =
           if not (check_book ~bids:bbook ~asks:abook = Optint.of_float chksum) then
             failwith "Checksum ERROR" ;
           String.Table.set bks ~key:sym ~data:(bbook, abook)
-        | Response sub -> Pipe.write_without_pushback_if_open subs_w sub
+        | Subscribed sub -> Pipe.write_without_pushback_if_open subs_w sub
         | Quotes (sym, { chksum; bids; asks; action = `Partial; _ }) ->
           let bids = List.fold_left ~init:FloatMap.empty
               ~f:(fun a {price; qty} -> FloatMap.add price qty a) bids in

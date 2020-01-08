@@ -29,7 +29,6 @@ let channel_encoding =
 module Subscription = struct
   module T = struct
     type t = {
-      op: [`Subscribe | `Unsubscribe] ;
       channel: channel ;
       sym: string ;
     } [@@deriving sexp]
@@ -43,34 +42,17 @@ module Subscription = struct
   module Map = Map.Make(T)
   module Table = Hashtbl.Make(T)
 
-  let subscribe channel sym = {
-    op = `Subscribe ; channel ; sym }
-  let unsubscribe channel sym = {
-    op = `Unsubscribe ; channel ; sym }
-
-  let encoding encoding =
+  let encoding =
     conv
-      (fun { op ; channel ; sym } -> op, (channel, sym))
-      (fun (op, (channel, sym)) -> { op ; channel ; sym })
-      (merge_objs encoding
-         (obj2
-            (req "channel" channel_encoding)
-            (req "market" string)))
+      (fun { channel ; sym } -> channel, sym)
+      (fun (channel, sym) -> { channel ; sym })
+      (obj2
+         (req "channel" channel_encoding)
+         (req "market" string))
 
-  let sub_encoding =
-    string_enum [
-      "subscribe", `Subscribe ;
-      "unsubscribe", `Unsubscribe ;
-    ]
-
-  let subbed_encoding =
-    string_enum [
-      "subscribed", `Subscribe ;
-      "unsubscribed", `Unsubscribe ;
-    ]
-
-  let sub_encoding = encoding (obj1 (req "op" sub_encoding))
-  let subbed_encoding = encoding (obj1 (req "type" subbed_encoding))
+  let ticker sym = { channel = Ticker; sym }
+  let trades sym = { channel = Trades; sym }
+  let books sym = { channel = Orderbook; sym }
 end
 
 type msg = {
@@ -227,11 +209,27 @@ let data_encoding encoding =
 type t =
   | Error of { code: int ; msg: string }
   | Info of msg
-  | Response of Subscription.t
+  | Ping
+  | Pong
+
+  | Subscribe of Subscription.t
+  | Unsubscribe of Subscription.t
+  | Subscribed of Subscription.t
+  | Unsubscribed of Subscription.t
+
   | Ticker of string * ticker
   | Quotes of string * book
   | Trades of string * trade list
 [@@deriving sexp]
+
+let ticker_sub sym = Subscribe { channel = Ticker; sym }
+let ticker_unsub sym = Unsubscribe { channel = Ticker; sym }
+
+let trades_sub sym = Subscribe { channel = Trades; sym }
+let trades_unsub sym = Unsubscribe { channel = Trades; sym }
+
+let books_sub sym = Subscribe { channel = Orderbook; sym }
+let books_unsub sym = Unsubscribe { channel = Orderbook; sym }
 
 let error_encoding =
   conv
@@ -258,15 +256,32 @@ let ticker_encoding =
        (req "market" string)
        (req "data" ticker_encoding))
 
+let ping_encoding = obj1 (req "op" (constant "ping"))
+let pong_encoding = obj1 (req "type" (constant "pong"))
+
 let encoding =
   union [
     case error_encoding
       (function Error { code; msg } -> Some (code, msg) | _ -> None)
       (fun (code, msg) -> Error { code ; msg }) ;
     case info_encoding (function Info msg -> Some msg | _ -> None) (fun msg -> Info msg) ;
-    case Subscription.subbed_encoding
-      (function Response sub -> Some sub | _ -> None)
-      (fun sub -> Response sub) ;
+
+    case ping_encoding (function Ping -> Some () | _ -> None) (fun () -> Pong) ;
+    case pong_encoding (function Pong -> Some () | _ -> None) (fun () -> Pong) ;
+
+    case (merge_objs (obj1 (req "op" (constant "subscribed"))) Subscription.encoding)
+      (fun _ -> assert false) (fun ((), { Subscription.channel; sym }) ->
+          Subscribed { channel; sym }) ;
+
+    case (merge_objs (obj1 (req "op" (constant "unsubscribe"))) Subscription.encoding)
+      (fun _ -> assert false) (fun ((), { Subscription.channel; sym }) ->
+          Unsubscribed { channel; sym }) ;
+
+    case (merge_objs (obj1 (req "op" (constant "subscribe"))) Subscription.encoding)
+      (function Subscribe sub -> Some ((), sub) | _ -> None) (fun _ -> assert false) ;
+
+    case (merge_objs (obj1 (req "op" (constant "unsubscribe"))) Subscription.encoding)
+      (function Unsubscribe sub -> Some ((), sub) | _ -> None) (fun _ -> assert false) ;
 
     case ticker_encoding
       (function Ticker (sym, ticker) -> Some (sym, ticker) | _ -> None)
@@ -288,7 +303,7 @@ let of_string msg =
   Ezjsonm_encoding.destruct_safe encoding (Ezjsonm.from_string msg)
 
 let to_string t =
-  match Ezjsonm_encoding.construct Subscription.sub_encoding t with
+  match Ezjsonm_encoding.construct encoding t with
   | `A _ | `O _ as a -> Ezjsonm.to_string a
   | #Json_repr.ezjsonm -> assert false
 

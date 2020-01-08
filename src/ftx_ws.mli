@@ -12,10 +12,9 @@ val channel_encoding : channel Json_encoding.encoding
 
 module Subscription : sig
   type t = {
-    op: [`Subscribe | `Unsubscribe] ;
     channel: channel ;
     sym: string ;
-  } [@@deriving sexp]
+  } [@@deriving sexp_of]
 
   module Set : Set.S with type elt := t
   module Map : Map.S with type key := t
@@ -24,11 +23,9 @@ module Subscription : sig
   val compare : t -> t -> int
   val hash : t -> int
 
-  val sub_encoding : t Json_encoding.encoding
-  val subbed_encoding : t Json_encoding.encoding
-
-  val subscribe : channel -> string -> t
-  val unsubscribe : channel -> string -> t
+  val ticker : string -> t
+  val trades : string -> t
+  val books : string -> t
 end
 
 type msg = {
@@ -80,13 +77,29 @@ type trade = {
 type t =
   | Error of { code: int ; msg: string }
   | Info of msg
-  | Response of Subscription.t
+  | Ping
+  | Pong
+
+  | Subscribe of Subscription.t
+  | Unsubscribe of Subscription.t
+  | Subscribed of Subscription.t
+  | Unsubscribed of Subscription.t
+
   | Ticker of string * ticker
   | Quotes of string * book
   | Trades of string * trade list
 [@@deriving sexp]
 
+val ticker_sub : string -> t
+val ticker_unsub : string -> t
+
+val trades_sub : string -> t
+val trades_unsub : string -> t
+
+val books_sub : string -> t
+val books_unsub : string -> t
+
 val encoding : t Json_encoding.encoding
 val pp : Format.formatter -> t -> unit
 val of_string : string -> t
-val to_string : Subscription.t -> string
+val to_string : t -> string
