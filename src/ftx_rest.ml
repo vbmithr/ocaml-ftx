@@ -38,8 +38,8 @@ let secTyp_encoding =
        (req "underlying" (option string)))
 
 type stats = {
-  ask: float;
-  bid: float;
+  ask: float option ;
+  bid: float option ;
   last: float option;
   price: float option;
   change1h: float option;
@@ -55,8 +55,8 @@ let stats_encoding =
     (fun (ask, bid, last, price, change1h, change24h, changeBod, quoteVolume24h, volumeUsd24h) ->
        { ask ; bid ; last ; price ; change1h ; change24h ; changeBod ; quoteVolume24h ; volumeUsd24h })
     (obj9
-       (req "ask" float)
-       (req "bid" float)
+       (req "ask" (option float))
+       (req "bid" (option float))
        (req "last" (option float))
        (req "price" (option float))
        (opt "change1h" float)

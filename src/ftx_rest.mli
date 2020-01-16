@@ -5,8 +5,8 @@ type secTyp =
   | Future of { underlying: string } [@@deriving sexp]
 
 type stats = {
-  ask: float;
-  bid: float;
+  ask: float option;
+  bid: float option;
   last: float option;
   price: float option;
   change1h: float option;
