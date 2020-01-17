@@ -2,6 +2,7 @@
  (name       test)
  (modules    test)
  (preprocess (pps ppx_jane ppx_sexp_conv))
+ (package ftx-rest)
  (libraries
   ftx-rest
   alcotest-async
