@@ -11,7 +11,7 @@
  (names ws leak)
  (public_names ftx-ws-cli ftx-leak-test)
  (modules ws leak)
- (package ftx-ws)
+ (package ftx-bin)
  (preprocess (pps ppx_jane ppx_sexp_conv))
  (libraries
    core
