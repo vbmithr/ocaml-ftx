@@ -88,12 +88,12 @@ let main () =
         | Quotes (sym, { chksum; bids; asks; action = `Update; _ }) ->
           let bbook, abook = String.Table.find_exn bks sym in
           let bbook = List.fold_left bids ~init:bbook ~f:(fun a { price; qty } ->
-              if qty = 0. then FloatMap.remove price a
+              if Float.equal qty 0. then FloatMap.remove price a
               else FloatMap.add price qty a) in
           let abook = List.fold_left asks ~init:abook ~f:(fun a { price; qty } ->
-              if qty = 0. then FloatMap.remove price a
+              if Float.equal qty 0. then FloatMap.remove price a
               else FloatMap.add price qty a) in
-          if not (check_book ~bids:bbook ~asks:abook = Optint.of_float chksum) then
+          if not Optint.(equal (check_book ~bids:bbook ~asks:abook) (of_float chksum)) then
             failwith "Checksum ERROR" ;
           String.Table.set bks ~key:sym ~data:(bbook, abook)
         | Subscribed sub -> Pipe.write_without_pushback_if_open subs_w sub
@@ -102,7 +102,7 @@ let main () =
               ~f:(fun a {price; qty} -> FloatMap.add price qty a) bids in
           let asks = List.fold_left ~init:FloatMap.empty
               ~f:(fun a {price; qty} -> FloatMap.add price qty a) asks in
-          begin match check_book ~bids ~asks = Optint.of_float chksum with
+          begin match Optint.(equal (check_book ~bids ~asks) (of_float chksum)) with
             | true -> Log.debug (fun m -> m "Checksum OK")
             | false ->             failwith "Checksum ERROR"
           end ;
