@@ -101,5 +101,3 @@ val books_unsub : string -> t
 
 val encoding : t Json_encoding.encoding
 val pp : Format.formatter -> t -> unit
-val of_string : string -> t
-val to_string : t -> string

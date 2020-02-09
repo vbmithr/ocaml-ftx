@@ -81,6 +81,12 @@ let process_user_cmd w =
 let main () =
   Fastrest.request Ftx_rest.markets >>= fun mkts ->
   markets := List.map mkts ~f:(fun { name; _ } -> name) ;
+  let module Encoding = Json_encoding.Make(Json_repr.Yojson) in
+  let buf = Bi_outbuf.create 4096 in
+  let of_string s =
+    Encoding.destruct encoding (Yojson.Safe.from_string ~buf s) in
+  let to_string t =
+    Yojson.Safe.to_string ~buf (Encoding.construct encoding t) in
   Fastws_async.with_connection url ~to_string ~of_string begin fun r w ->
     let bks = String.Table.create () in
     let log_incoming msg =

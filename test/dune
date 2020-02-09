@@ -4,9 +4,10 @@
  (preprocess (pps ppx_jane ppx_sexp_conv))
  (package ftx-rest)
  (libraries
-  ftx-rest
-  alcotest-async
-  logs-async-reporter))
+   yojson
+   ftx-rest
+   alcotest-async
+   logs-async-reporter))
 
 (executables
  (names ws leak)
@@ -17,6 +18,7 @@
  (libraries
    core
    async
+   yojson
    fastws-async
    logs-async-reporter
    fastrest

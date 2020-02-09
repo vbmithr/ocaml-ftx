@@ -25,7 +25,6 @@
  (modules ftx_ws)
  (preprocess (pps ppx_sexp_conv))
  (libraries
-   ezjsonm
    fixtypes
    ftx
    ptime
