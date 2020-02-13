@@ -8,13 +8,13 @@ doc: "https://vbmithr.github.io/ocaml-ftx/doc"
 build: [ "dune" "build" "-j" jobs "-p" name ]
 run-test: [ "dune" "runtest" "-j" jobs "-p" name ]
 depends: [
+  "ocaml" {>= "4.08.0"}
   "dune" {>= "1.11.4"}
   "uri" {>= "3.1.0"}
   "ocplib-json-typed" {>= "0.7.1"}
   "core" {>= "v0.12.4"}
   "fastrest" {= version}
-  "alcotest-async" {with-test & >= "0.8.5"}
-  "logs-async-reporter" {with-test & = version}
+  "alcotest-async" {with-test & >= "1.0.0"}
 ]
 synopsis: "FTX API"
 description: """
